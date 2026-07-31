@@ -1,0 +1,8 @@
+[project]
+name = "cargo-panic-oop"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
