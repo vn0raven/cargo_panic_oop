@@ -103,8 +103,4 @@ Use:
 
 ```powershell
 py -3.12 main.py
-```
-
-### The previous build prints `Item 1: ON_CONVEYOR...` and closes
-
-That is the old architecture-only demo. Use the corrected ZIP containing this README and a `main.py` whose window title is **Cargo Panic — OOP Persistent Tracking Build**.
+``
