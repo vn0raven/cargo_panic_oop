@@ -1,4 +1,4 @@
-name: Build Windows executable
+name: Build Windows release
 
 on:
   workflow_dispatch:
@@ -10,10 +10,9 @@ permissions:
   contents: read
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
-    timeout-minutes: 20
-
+    timeout-minutes: 40
     steps:
       - name: Check out source
         uses: actions/checkout@v6
@@ -25,41 +24,15 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            requirements-build.txt
+            tools/requirements-build.txt
 
-      - name: Install dependencies
+      - name: Build and test release
         shell: pwsh
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements-build.txt
+        run: .\tools\build_windows.ps1
 
-      - name: Run domain tests
-        run: python -m unittest discover -s tests -v
-
-      - name: Build one-file executable
-        run: python -m PyInstaller --clean --noconfirm CargoPanic.spec
-
-      - name: Smoke-test packaged executable
-        shell: pwsh
-        run: |
-          & .\dist\CargoPanic.exe --headless
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Prepare artifact and checksum
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path release -Force | Out-Null
-          Copy-Item .\dist\CargoPanic.exe .\release\CargoPanic.exe
-          $hash = (Get-FileHash .\release\CargoPanic.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  CargoPanic.exe" | Set-Content .\release\CargoPanic.exe.sha256 -Encoding ascii
-          Compress-Archive -Path .\release\CargoPanic.exe, .\release\CargoPanic.exe.sha256 -DestinationPath .\release\CargoPanic-Windows-x64.zip -Force
-
-      - name: Upload Windows build
+      - name: Upload Windows release
         uses: actions/upload-artifact@v7
         with:
           name: CargoPanic-Windows-x64
-          path: |
-            release/CargoPanic.exe
-            release/CargoPanic.exe.sha256
-            release/CargoPanic-Windows-x64.zip
+          path: dist/CargoPanic-Windows-x64.zip
           if-no-files-found: error

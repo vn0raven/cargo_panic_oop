@@ -1,4 +1,4 @@
-"""Cargo Panic UI-enhanced game package."""
+"""Cargo Panic game package."""
 
 from __future__ import annotations
 

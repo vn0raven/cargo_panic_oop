@@ -63,6 +63,7 @@ class CargoPanicGame:
         headless: bool = False,
         webcam: bool = False,
         camera_index: int = 0,
+        hand_model_path: str | None = None,
         preview_path: str | None = None,
     ) -> None:
         if headless:
@@ -71,7 +72,7 @@ class CargoPanicGame:
             os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
             os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
         pygame.init()
-        pygame.display.set_caption("Cargo Panic — UI Enhanced")
+        pygame.display.set_caption("Cargo Panic")
         flags = pygame.HIDDEN if headless else 0
         self.screen = pygame.display.set_mode(SCREEN_SIZE, flags)
         self.clock = pygame.time.Clock()
@@ -85,7 +86,7 @@ class CargoPanicGame:
         self.state = ScreenState.MENU
         self.return_state = ScreenState.MENU
         self.input_mode = InputMode.WEBCAM if webcam else InputMode.MOUSE
-        self.webcam = WebcamHandInput(camera_index)
+        self.webcam = WebcamHandInput(camera_index, hand_model_path)
         if webcam:
             self.webcam.start()
 
@@ -120,12 +121,13 @@ class CargoPanicGame:
         self.belt_offset = 0.0
         self.elapsed = 0.0
 
-        self.webcam_history: deque[bool] = deque(maxlen=5)
+        self.webcam_history: deque[str] = deque(maxlen=7)
         self.webcam_stable_closed = False
         self.webcam_last_seen = 0.0
         self.webcam_tracking_suspended_at: float | None = None
         self.webcam_cursor = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
         self.webcam_status = "Mouse input ready"
+        self.webcam_gesture = "NONE"
 
         self._set_menu_buttons()
 
@@ -184,6 +186,8 @@ class CargoPanicGame:
         self.shake_timer = 0.0
         self.flash_timer = 0.0
         self.webcam_tracking_suspended_at = None
+        self.webcam_history.clear()
+        self.webcam_stable_closed = False
 
     def _begin_contract(self) -> None:
         self.state = ScreenState.PLAYING
@@ -316,11 +320,15 @@ class CargoPanicGame:
     def _toggle_input(self) -> None:
         if self.input_mode == InputMode.MOUSE:
             self.input_mode = InputMode.WEBCAM
+            self.webcam_history.clear()
+            self.webcam_stable_closed = False
             self.webcam.start()
             self.webcam_status = "Starting camera… mouse fallback remains active"
         else:
             self.input_mode = InputMode.MOUSE
             self.webcam.stop()
+            self.webcam_history.clear()
+            self.webcam_stable_closed = False
             self.webcam_status = "Mouse input ready"
         if self.state == ScreenState.MENU:
             self._set_menu_buttons()
@@ -537,22 +545,26 @@ class CargoPanicGame:
         self.parcels.append(parcel)
 
     def _update_webcam(self, dt: float) -> None:
-        del dt
         if self.input_mode != InputMode.WEBCAM:
             return
         snapshot = self.webcam.snapshot()
         self.webcam_status = snapshot.message
+        self.webcam_gesture = snapshot.gesture
         now = time.monotonic()
         if snapshot.detected:
             self.webcam_last_seen = now
+            target_x = int(snapshot.x * SCREEN_WIDTH)
+            target_y = int(snapshot.y * SCREEN_HEIGHT)
+            smoothing = 1.0 - math.exp(-max(dt, 0.001) * 14.0)
             self.webcam_cursor = (
-                int(snapshot.x * SCREEN_WIDTH),
-                int(snapshot.y * SCREEN_HEIGHT),
+                int(self.webcam_cursor[0] + (target_x - self.webcam_cursor[0]) * smoothing),
+                int(self.webcam_cursor[1] + (target_y - self.webcam_cursor[1]) * smoothing),
             )
-            self.webcam_history.append(snapshot.closed)
-            closed_votes = sum(self.webcam_history)
+            self.webcam_history.append(snapshot.gesture)
+            closed_votes = sum(gesture == "CLOSED" for gesture in self.webcam_history)
+            open_votes = sum(gesture == "OPEN" for gesture in self.webcam_history)
             stable_closed = closed_votes >= 3
-            stable_open = (len(self.webcam_history) >= 4 and closed_votes <= 1)
+            stable_open = open_votes >= 3
 
             if self.webcam_tracking_suspended_at is not None and self.selected_parcel is not None:
                 self.selected_parcel.resume_tracking()
@@ -577,6 +589,8 @@ class CargoPanicGame:
         else:
             self.webcam_history.clear()
             lost_for = now - self.webcam_last_seen
+            if self.selected_parcel is None and lost_for > 0.35:
+                self.webcam_stable_closed = False
             if self.selected_parcel is not None and self.selected_via_webcam and lost_for > 0.65:
                 if self.webcam_tracking_suspended_at is None:
                     self.webcam_tracking_suspended_at = now

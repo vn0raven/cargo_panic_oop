@@ -3,19 +3,15 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cargo-panic-ui"
-version = "1.0.0"
-description = "UI-enhanced warehouse sorting game built with Pygame"
+name = "cargo-panic"
+version = "1.1.0"
+description = "Warehouse sorting game with mouse and webcam controls"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 dependencies = [
-  "pygame>=2.5,<3",
-]
-
-[project.optional-dependencies]
-webcam = [
-  "opencv-python>=4.9,<5",
-  "mediapipe>=0.10,<1",
+  "pygame>=2.6,<3",
+  "opencv-python>=4.10,<5",
+  "mediapipe>=0.10.31,<0.11",
 ]
 
 [project.scripts]
@@ -24,3 +20,6 @@ cargo-panic = "main:main"
 [tool.setuptools]
 packages = ["cargo_panic"]
 py-modules = ["main"]
+
+[tool.setuptools.package-data]
+cargo_panic = ["assets/*.task"]
