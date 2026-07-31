@@ -5,6 +5,6 @@ if not exist .venv (
 )
 call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python main.py
+python -m pip install -r requirements-webcam.txt
+python main.py --webcam
 pause

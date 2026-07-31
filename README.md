@@ -1,100 +1,100 @@
-# Cargo Panic: Night Shift
+# Cargo Panic — UI Enhanced Fork
 
-A polished, mouse-first vertical slice built from the structure and interaction ideas in the original `vn0raven/cargo_panic_oop` project.
+This folder is a clean UI-focused fork of the Cargo Panic warehouse-sorting game concept from:
 
-Packages travel across a live conveyor. Read their destination labels, prioritize urgent cargo, scan damaged labels, and drag each package into the correct shipping bay before the night shift collapses.
+- https://github.com/vn0raven/cargo_panic_oop
 
-## Fastest Windows start
+The sorting loop remains the same: inspect a parcel, use the active contract rule, drag it to one of four destination bays, and complete increasingly difficult batches.
 
-1. Extract the ZIP completely.
-2. Install Python 3.12 and enable **Add Python to PATH**.
-3. Double-click `setup_and_run_mouse.bat`.
-4. Press Space or click on the title screen.
+## UI changes
 
-After the first setup, launch with `run_mouse.bat`.
+- Clear three-level information hierarchy: active rule, routing map, then progress/score.
+- Relevant parcel attribute is visually dominant; irrelevant metadata is quiet.
+- Clickable controls on menus, briefings, pause, reports, and settings.
+- Explicit valid/invalid drop states and reason-based error messages.
+- Interactive practice shift with correct-bay guidance.
+- Pause menu, accessibility settings, routing assist, high contrast, and reduced motion.
+- Contract and campaign reports with quality, errors, score, and combo breakdowns.
+- Optional webcam input with visible hand/tracking states and automatic mouse fallback.
+- Keyboard focus navigation using Tab and Enter.
 
-## PowerShell start
+## Run with mouse
 
-```powershell
-Set-Location "C:\path\to\cargo_panic_demo"
-Set-ExecutionPolicy -Scope Process Bypass
-.\setup_and_run_mouse.ps1
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
+python main.py
 ```
 
-Manual setup:
+## Run with webcam
 
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe main.py
+```bash
+python -m pip install -r requirements-webcam.txt
+python main.py --webcam
 ```
+
+Use another camera with `python main.py --webcam --camera 1`.
 
 ## Controls
 
-- **Left mouse drag:** grab and route a package.
-- **Space or right mouse:** hold while hovering a damaged package to scan its label.
-- **Esc or P:** pause and resume.
-- **R, Space, Enter, or click:** retry from the shift report.
+- Left mouse: grab, carry, and release parcels.
+- Closed hand: grab in webcam mode.
+- Open hand: release in webcam mode.
+- `Tab`: move focus between visible controls.
+- `Enter` or `Space`: activate the focused control.
+- `Esc` or `P`: pause/resume gameplay.
+- `R`: restart the current contract.
 
-## Demo systems
+## Tests
 
-- Three readable destinations: Northport, Eastvale, and Westhaven.
-- Five escalating phases lasting about five minutes in total.
-- Standard, small, and heavy package bodies.
-- Fragile, refrigerated, express, and damaged handling requirements.
-- One-second damaged-label scanner interaction.
-- Accuracy-first score, speed bonuses, combo multipliers, and three-strike pressure.
-- Temporary bay closures, conveyor surges, and a final emergency mode.
-- Procedural sound effects with no external asset downloads.
-- Local high-score persistence.
-- Results screen with accuracy, highest combo, average sort time, rank, and most common mistake.
+The domain tests do not require Pygame:
 
-## Package behavior
+```bash
+python -m unittest discover -s tests -v
+```
 
-| Cargo property | Effect |
-|---|---|
-| Small | Moves slightly faster on the belt. |
-| Heavy | Lags behind the cursor while dragged. |
-| Fragile | Rough dragging costs points. |
-| Refrigerated | Expires after roughly ten seconds. |
-| Express | Pays a higher base score but has a visible urgency timer. |
-| Damaged | Destination stays hidden until scanned. |
+A graphical smoke test can be run after installing Pygame:
 
-## Project structure
+```bash
+python main.py --headless --preview preview.png
+```
+
+## Build a Windows `.exe`
+
+PyInstaller must run on Windows to create a Windows executable. The repository includes a reproducible mouse-first build that creates one windowed file:
+
+```powershell
+.\build_exe.ps1
+```
+
+Or double-click `build_exe.bat`. The output is:
 
 ```text
-application/        Pygame session and screen orchestration
-core/               Configuration, phases, enums, shared events
-entities/           Cargo package and player statistics models
-interactables/      Conveyor, scanner, and shipping bays
-managers/           Spawning, scoring, difficulty, and feedback
-infrastructure/     Procedural audio and local score storage
-tests/              Deterministic logic tests
-main.py              Entry point
+dist\CargoPanic.exe
+dist\CargoPanic.exe.sha256
 ```
 
-## Run tests
+The build uses Python 3.12, runs the domain tests, packages with `CargoPanic.spec`, and executes a headless smoke test against the finished executable. The standard build deliberately excludes OpenCV and MediaPipe, so it stays smaller and uses mouse input. Webcam packaging can be added as a separate, larger build target.
 
-After setup:
+## Build through GitHub Actions
+
+After this source is in GitHub:
+
+1. Open **Actions**.
+2. Select **Build Windows executable**.
+3. Choose **Run workflow**.
+4. Download the `CargoPanic-Windows-x64` artifact when the job completes.
+
+Creating a tag such as `v1.1.0` also triggers the Windows build.
+
+## Publish the UI branch
+
+On a Windows machine with Git credentials configured, run:
 
 ```powershell
-.\run_tests.ps1
+.\publish_ui_branch.ps1
 ```
 
-Or directly:
-
-```powershell
-$env:SDL_VIDEODRIVER = "dummy"
-$env:SDL_AUDIODRIVER = "dummy"
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-## Webcam compatibility
-
-The original repository included webcam and hand-tracking support. This vertical slice is intentionally balanced around reliable mouse input, and the `--webcam` flag currently falls back to mouse mode. See `WEBCAM_MIGRATION.md` for the clean integration boundary.
-
-## Source base
-
-Original repository: `https://github.com/vn0raven/cargo_panic_oop`
-
-This ZIP is a gameplay-focused derivative prepared for the repository owner. It does not include the original MediaPipe model binary.
+The script clones the upstream repository, creates `feature/ui-enhanced`, overlays this implementation, commits it, and pushes the branch without modifying `main` directly. `publish_ui_branch.bat` is the double-click wrapper.
