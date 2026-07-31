@@ -1,8 +1,13 @@
 [project]
-name = "cargo-panic-oop"
-version = "0.1.0"
-requires-python = ">=3.12"
+name = "cargo-panic-night-shift"
+version = "0.2.0"
+description = "A mouse-first Pygame conveyor sorting demo with escalating logistics pressure."
+requires-python = ">=3.10"
+dependencies = ["pygame>=2.5.2,<3"]
 
-[tool.pyright]
-pythonVersion = "3.12"
-typeCheckingMode = "strict"
+[tool.ruff]
+line-length = 120
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

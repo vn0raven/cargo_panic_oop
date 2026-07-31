@@ -1,88 +1,65 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+import math
 
-from core.enums import ItemState
-from core.vector import Vec2
-from managers.item_tracking_manager import ItemTrackingManager
+import pygame
 
-
-@dataclass(slots=True)
-class Conveyor(ABC):
-    conveyor_id: str
-    center_y: float
-    speed: float
-    left_bound: float
-    right_bound: float
-    attached_item_ids: set[int] = field(default_factory=set)
-
-    def add_item(self, item_id: int) -> None:
-        self.attached_item_ids.add(item_id)
-
-    def remove_item(self, item_id: int) -> None:
-        self.attached_item_ids.discard(item_id)
-
-    @abstractmethod
-    def update(self, tracker: ItemTrackingManager, dt: float, now: float) -> list[int]:
-        raise NotImplementedError
+from core.config import BELT_DARK, BELT_LIGHT, BELT_RECT, INK, MUTED
+from core.enums import PackageKind, PackageState
+from entities.package import CargoPackage
 
 
 @dataclass(slots=True)
-class LinearConveyor(Conveyor):
-    reattach_duration: float = 0.22
+class ConveyorBelt:
+    base_speed: float
+    visual_offset: float = 0.0
+    surge_multiplier: float = 1.0
 
-    def attach(
-        self,
-        tracker: ItemTrackingManager,
-        item_id: int,
-        now: float,
-        *,
-        smooth: bool,
-    ) -> None:
-        item = tracker.get(item_id)
-        self.add_item(item_id)
-        if smooth and abs(item.position.y - self.center_y) > 0.5:
-            # The release position is preserved and becomes the interpolation origin.
-            # No code writes the item directly back to the belt center.
-            tracker.start_reattach(item_id, self.conveyor_id, now)
-        else:
-            tracker.move(item_id, Vec2(item.position.x, self.center_y), Vec2(self.speed, 0.0), now)
-            tracker.attach(item_id, self.conveyor_id, now)
+    @property
+    def rect(self) -> pygame.Rect:
+        return pygame.Rect(BELT_RECT)
 
-    def detach(self, item_id: int) -> None:
-        self.remove_item(item_id)
+    @property
+    def speed(self) -> float:
+        return self.base_speed * self.surge_multiplier
 
-    def contains_x(self, x: float) -> bool:
-        return self.left_bound <= x <= self.right_bound
-
-    def update(self, tracker: ItemTrackingManager, dt: float, now: float) -> list[int]:
-        missed: list[int] = []
-        for item_id in tuple(self.attached_item_ids):
-            item = tracker.get(item_id)
-            if not item.active:
-                self.remove_item(item_id)
+    def update(self, packages: list[CargoPackage], dt: float) -> None:
+        self.visual_offset = (self.visual_offset + self.speed * dt) % 84
+        for package in packages:
+            if package.state is not PackageState.ON_BELT:
                 continue
+            kind_factor = 1.08 if package.kind is PackageKind.SMALL else 0.92 if package.kind is PackageKind.HEAVY else 1.0
+            package.position.x += self.speed * kind_factor * dt
 
-            if item.state is ItemState.ON_CONVEYOR:
-                next_position = Vec2(item.position.x + self.speed * dt, self.center_y)
-                tracker.move(item_id, next_position, Vec2(self.speed, 0.0), now)
-            elif item.state is ItemState.REATTACHING:
-                origin = item.reattach_origin or item.position
-                started_at = item.reattach_started_at if item.reattach_started_at is not None else now
-                progress = min(1.0, max(0.0, (now - started_at) / max(self.reattach_duration, 1e-6)))
-                target = Vec2(item.position.x + self.speed * dt, self.center_y)
-                next_position = Vec2(target.x, origin.y + (self.center_y - origin.y) * progress)
-                tracker.move(item_id, next_position, Vec2(self.speed, 0.0), now)
-                if progress >= 1.0:
-                    tracker.complete_reattach(item_id, self.conveyor_id, now)
-            else:
-                # Held, suspended, or dropped items are not conveyor-owned.
-                self.remove_item(item_id)
-                continue
+    def draw(self, surface: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        rect = self.rect
+        pygame.draw.rect(surface, (17, 22, 30), rect.move(0, 9), border_radius=18)
+        pygame.draw.rect(surface, BELT_DARK, rect, border_radius=18)
+        inner = rect.inflate(-20, -34)
+        pygame.draw.rect(surface, BELT_LIGHT, inner, border_radius=12)
 
-            if tracker.get(item_id).position.x > self.right_bound:
-                tracker.miss(item_id, now)
-                self.remove_item(item_id)
-                missed.append(item_id)
-        return missed
+        stripe_width = 42
+        start = -stripe_width * 2 + int(self.visual_offset)
+        for x in range(start, rect.right + stripe_width, stripe_width * 2):
+            points = (
+                (x, inner.y),
+                (x + stripe_width, inner.y),
+                (x + stripe_width * 2, inner.bottom),
+                (x + stripe_width, inner.bottom),
+            )
+            pygame.draw.polygon(surface, (56, 64, 77), points)
+
+        for x in range(30, rect.right, 84):
+            pygame.draw.circle(surface, (26, 31, 40), (x, rect.bottom - 13), 10)
+            pygame.draw.circle(surface, (88, 99, 116), (x, rect.bottom - 13), 5)
+
+        label = fonts["small"].render("INBOUND CONVEYOR  •  KEEP LINE CLEAR", True, MUTED)
+        surface.blit(label, (28, rect.y + 10))
+
+        danger_x = rect.right - 100
+        pulse = 0.5 + 0.5 * math.sin(pygame.time.get_ticks() / 180.0)
+        danger_color = (round(140 + 100 * pulse), 68, 68)
+        pygame.draw.rect(surface, danger_color, pygame.Rect(danger_x, rect.y + 5, 90, rect.height - 10), 3, border_radius=11)
+        warning = fonts["tiny"].render("MISS ZONE", True, INK)
+        surface.blit(warning, warning.get_rect(midtop=(danger_x + 45, rect.y + 14)))

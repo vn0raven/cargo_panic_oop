@@ -1,15 +1,16 @@
-# Migration Map from the Existing Monolith
+# Original-to-demo migration map
 
-| Existing responsibility | New location |
-|---|---|
-| `Package` data and item state | `entities/item.py` |
-| `HandController.held_package_id` ownership | `entities/player.py` + `managers/interaction_manager.py` |
-| `nearest_package`, `package_by_id` | `managers/item_tracking_manager.py` |
-| `grab_package`, `release_package` | `managers/interaction_manager.py` |
-| belt movement and missed-edge detection | `interactables/conveyor.py` |
-| webcam packet translation | `infrastructure/vision/packet_adapter.py` |
-| MediaPipe worker | `infrastructure/vision/tracking_worker.py` |
-| level/campaign rules | keep under `application/` as separate managers |
-| Pygame drawing helpers | move under `presentation/pygame/` |
+This build retains the original repository's package-oriented OOP layout while replacing the single-rule contract flow with a unified destination-routing shift.
 
-The item tracker is authoritative. Rendering, input, conveyors, and scoring may read snapshots or request transitions, but must not directly assign `state`, `holder_id`, `conveyor_id`, or `position`.
+| Original area | Demo counterpart | Design change |
+|---|---|---|
+| `application/game_world.py` and main loop | `application/game.py` | Full title, play, pause, emergency, and results state machine. |
+| `entities/item.py` | `entities/package.py` | Destination, body type, handling tag, urgency, scanning, and drag metrics. |
+| `entities/player.py` | `entities/player.py` | Accuracy, mistakes, and average-sort-time tracking. |
+| `interactables/conveyor.py` | `interactables/conveyor.py` | Variable speed, body-specific movement, surge multiplier, and miss zone. |
+| `interactables/drop_zone.py` | `interactables/shipping_container.py` | Three readable destination bays with closure warnings and rejection state. |
+| Tracking/interaction managers | Mouse interaction in `application/game.py` | Reliable baseline input; webcam boundary documented separately. |
+| Contract/level rules | `core/config.py` phase specifications | Five continuous phases that add pressure without changing the core destination rule. |
+| Existing score/report flow | `managers/score_manager.py` and shift report | Combo tiers, urgency bonuses, rank, high score, and mistake diagnosis. |
+
+The modular boundaries are intentionally kept small so the original webcam adapter can be reintroduced later without changing the cargo domain model.

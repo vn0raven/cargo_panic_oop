@@ -1,106 +1,100 @@
-# Cargo Panic — Runnable OOP Build
+# Cargo Panic: Night Shift
 
-This corrected package opens the Pygame game window. The default launch mode uses the mouse and does not import MediaPipe or open a webcam.
+A polished, mouse-first vertical slice built from the structure and interaction ideas in the original `vn0raven/cargo_panic_oop` project.
 
-## Windows: quickest start
+Packages travel across a live conveyor. Read their destination labels, prioritize urgent cargo, scan damaged labels, and drag each package into the correct shipping bay before the night shift collapses.
 
-1. Install Python 3.12 and enable **Add Python to PATH** during installation.
-2. Extract the ZIP completely.
+## Fastest Windows start
+
+1. Extract the ZIP completely.
+2. Install Python 3.12 and enable **Add Python to PATH**.
 3. Double-click `setup_and_run_mouse.bat`.
-4. Press `Space` or `Enter` on the title screen.
-5. Hold the left mouse button over a parcel, drag it, and release it over a loading bay.
+4. Press Space or click on the title screen.
 
-After the first setup, use `run_mouse.bat` for later launches.
+After the first setup, launch with `run_mouse.bat`.
 
-## Windows: command line
+## PowerShell start
 
-Open PowerShell in this folder:
+```powershell
+Set-Location "C:\path\to\cargo_panic_demo"
+Set-ExecutionPolicy -Scope Process Bypass
+.\setup_and_run_mouse.ps1
+```
+
+Manual setup:
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python main.py
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
 ```
-
-If PowerShell blocks virtual-environment activation:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\.venv\Scripts\Activate.ps1
-```
-
-## macOS or Linux
-
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python main.py
-```
-
-## Webcam mode
-
-Use Python 3.12. Install the optional webcam packages:
-
-```powershell
-python -m pip install -r requirements-webcam.txt
-python main.py --webcam --model hand_landmarker.task
-```
-
-Use another camera index:
-
-```powershell
-python main.py --webcam --model hand_landmarker.task --camera 1
-```
-
-The model path is resolved relative to this project folder, so the included `hand_landmarker.task` works even when the terminal was opened elsewhere.
 
 ## Controls
 
-- `Space` or `Enter`: continue through menus and reports.
-- Left mouse button: grab, drag, and release a parcel.
-- Closed hand: grab a parcel in webcam mode.
-- Open hand: release a parcel in webcam mode.
-- `R`: retry from a contract report.
-- `Esc`: quit.
+- **Left mouse drag:** grab and route a package.
+- **Space or right mouse:** hold while hovering a damaged package to scan its label.
+- **Esc or P:** pause and resume.
+- **R, Space, Enter, or click:** retry from the shift report.
 
-## Persistent tracking behavior
+## Demo systems
 
-- A grabbed item is detached from conveyor ownership before player ownership begins.
-- Brief webcam loss stores the item in `TRACKING_SUSPENDED` at its exact last position.
-- When the same hand returns, it resumes control of the same item.
-- A prolonged loss releases the item in place instead of assigning its Y coordinate back to the conveyor.
-- An invalid manual drop enters `REATTACHING` and smoothly interpolates back to the belt.
+- Three readable destinations: Northport, Eastvale, and Westhaven.
+- Five escalating phases lasting about five minutes in total.
+- Standard, small, and heavy package bodies.
+- Fragile, refrigerated, express, and damaged handling requirements.
+- One-second damaged-label scanner interaction.
+- Accuracy-first score, speed bonuses, combo multipliers, and three-strike pressure.
+- Temporary bay closures, conveyor surges, and a final emergency mode.
+- Procedural sound effects with no external asset downloads.
+- Local high-score persistence.
+- Results screen with accuracy, highest combo, average sort time, rank, and most common mistake.
 
-## Tests
+## Package behavior
 
-```bash
-python -m unittest discover -s tests -v
+| Cargo property | Effect |
+|---|---|
+| Small | Moves slightly faster on the belt. |
+| Heavy | Lags behind the cursor while dragged. |
+| Fragile | Rough dragging costs points. |
+| Refrigerated | Expires after roughly ten seconds. |
+| Express | Pays a higher base score but has a visible urgency timer. |
+| Damaged | Destination stays hidden until scanned. |
+
+## Project structure
+
+```text
+application/        Pygame session and screen orchestration
+core/               Configuration, phases, enums, shared events
+entities/           Cargo package and player statistics models
+interactables/      Conveyor, scanner, and shipping bays
+managers/           Spawning, scoring, difficulty, and feedback
+infrastructure/     Procedural audio and local score storage
+tests/              Deterministic logic tests
+main.py              Entry point
 ```
 
-## Troubleshooting
+## Run tests
 
-### A console flashes and no game window appears
-
-Run the command from a terminal so the error remains visible:
+After setup:
 
 ```powershell
-python main.py
+.\run_tests.ps1
 ```
 
-The most common cause is a missing Pygame installation:
+Or directly:
 
 ```powershell
-python -m pip install -r requirements.txt
+$env:SDL_VIDEODRIVER = "dummy"
+$env:SDL_AUDIODRIVER = "dummy"
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-### `python` is not recognized
+## Webcam compatibility
 
-Use:
+The original repository included webcam and hand-tracking support. This vertical slice is intentionally balanced around reliable mouse input, and the `--webcam` flag currently falls back to mouse mode. See `WEBCAM_MIGRATION.md` for the clean integration boundary.
 
-```powershell
-py -3.12 main.py
-``
+## Source base
+
+Original repository: `https://github.com/vn0raven/cargo_panic_oop`
+
+This ZIP is a gameplay-focused derivative prepared for the repository owner. It does not include the original MediaPipe model binary.

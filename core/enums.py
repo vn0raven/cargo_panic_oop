@@ -3,27 +3,36 @@ from __future__ import annotations
 from enum import Enum, auto
 
 
-class ItemState(Enum):
-    QUEUED = auto()
-    ON_CONVEYOR = auto()
+class GameState(Enum):
+    TITLE = auto()
+    PLAYING = auto()
+    PAUSED = auto()
+    RESULTS = auto()
+
+
+class Destination(Enum):
+    NORTHPORT = "Northport"
+    EASTVALE = "Eastvale"
+    WESTHAVEN = "Westhaven"
+
+
+class PackageKind(Enum):
+    STANDARD = "Standard"
+    SMALL = "Small"
+    HEAVY = "Heavy"
+
+
+class HandlingTag(Enum):
+    NONE = "Standard"
+    FRAGILE = "Fragile"
+    REFRIGERATED = "Refrigerated"
+    EXPRESS = "Express"
+    DAMAGED = "Damaged"
+
+
+class PackageState(Enum):
+    ON_BELT = auto()
     HELD = auto()
-    TRACKING_SUSPENDED = auto()
-    REATTACHING = auto()
-    DROPPED = auto()
-    DELIVERED = auto()
-    MISSED = auto()
-    DISABLED = auto()
-
-
-class ItemEventType(Enum):
-    REGISTERED = auto()
-    POSITION_CHANGED = auto()
-    ATTACHED_TO_CONVEYOR = auto()
-    GRABBED = auto()
-    RELEASED = auto()
-    TRACKING_LOST = auto()
-    TRACKING_RECOVERED = auto()
-    REATTACH_STARTED = auto()
-    REATTACHED = auto()
+    SCANNING = auto()
     DELIVERED = auto()
     MISSED = auto()

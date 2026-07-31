@@ -1,33 +1,27 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-from core.vector import Vec2
+from dataclasses import dataclass
 
 
 @dataclass(slots=True)
-class PlayerInteractor:
-    player_id: str
-    pointer_position: Vec2
-    tracked: bool = True
-    held_item_id: int | None = None
-    tracking_lost_at: float | None = None
+class PlayerStats:
+    total_sorted: int = 0
+    correct_sorted: int = 0
+    missed: int = 0
+    wrong: int = 0
+    fragile_mishandled: int = 0
+    expired: int = 0
+    total_sort_time: float = 0.0
 
-    def move_pointer(self, position: Vec2) -> None:
-        self.pointer_position = position.copy()
+    @property
+    def accuracy(self) -> float:
+        attempts = self.correct_sorted + self.wrong + self.missed + self.expired
+        if attempts <= 0:
+            return 100.0
+        return 100.0 * self.correct_sorted / attempts
 
-    def begin_hold(self, item_id: int) -> None:
-        if self.held_item_id is not None and self.held_item_id != item_id:
-            raise RuntimeError(f"{self.player_id} is already holding item {self.held_item_id}")
-        self.held_item_id = item_id
-
-    def end_hold(self) -> None:
-        self.held_item_id = None
-
-    def mark_tracking_lost(self, now: float) -> None:
-        self.tracked = False
-        self.tracking_lost_at = now
-
-    def mark_tracking_recovered(self) -> None:
-        self.tracked = True
-        self.tracking_lost_at = None
+    @property
+    def average_sort_time(self) -> float:
+        if self.correct_sorted <= 0:
+            return 0.0
+        return self.total_sort_time / self.correct_sorted
